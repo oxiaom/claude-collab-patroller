@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clean shutdown: trap SIGTERM/SIGINT → release_lock + exit 0
 - Self-renew via Start-Process (kimi 8/22 教训: 不用 setsid/nohup)
 - Fail-open + 60s 节流 (kimi 第 5 节降级备份)
-- claude 物理隔离 (Lesson #110: mcp-collab-claude.sh + claude-api-key)
+- claude 物理隔离 (Lesson #110: <YOUR_AGENT_SCRIPT> + claude-api-key)
 
 ## [0.1.0] - 2026-08-23
 
@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Design
 - 仿 claude-code-telegrammer 设计模式
-- 协议用 mcp-collab-claude.sh (claude 物理隔离, Lesson #110)
+- 协议用 <YOUR_AGENT_SCRIPT> (claude 物理隔离, Lesson #110)
 - 8s 长轮询 (直查 MCP API, 不依赖外部 flag)
 
 [Unreleased]: https://github.com/oxiaom/claude-collab-patroller/compare/v0.2.0...HEAD

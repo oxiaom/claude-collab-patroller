@@ -1,6 +1,6 @@
 ---
 name: claude-collab-patroller
-description: 持续 patrol collab-mcp inbox (TrustChain Collab MCP, http://192.168.1.114:3010), 新消息触发自动唤醒. 仿 claude-code-telegrammer 设计模式 (PID lock + clean shutdown + fails loud + Start-Process 自续命), 协议用 mcp-collab-claude.sh (claude 物理隔离, Lesson #110). 失败时 fail-open + 60s 节流 (kimi MSG-MONITOR-DESIGN.md 第 5 节降级备份方案). 当 claude 主 session 需要持续监控 inbox / 不能漏 baobei/kimi 消息 / 需要 session 重启后自动恢复监控时使用此 skill.
+description: 持续 patrol collab-mcp inbox (your Collab MCP, http://<YOUR_MCP_HOST>:<YOUR_MCP_PORT>), 新消息触发自动唤醒. 仿 claude-code-telegrammer 设计模式 (PID lock + clean shutdown + fails loud + Start-Process 自续命), 协议用 <YOUR_AGENT_SCRIPT> (claude 物理隔离, Lesson #110). 失败时 fail-open + 60s 节流 (kimi MSG-MONITOR-DESIGN.md 第 5 节降级备份方案). 当 claude 主 session 需要持续监控 inbox / 不能漏 agent 消息 / 需要 session 重启后自动恢复监控时使用此 skill.
 ---
 
 # claude-collab-patroller
@@ -9,25 +9,25 @@ description: 持续 patrol collab-mcp inbox (TrustChain Collab MCP, http://192.1
 
 ## 这是什么
 
-一个 Claude Code plugin, 持续 patrol TrustChain Collab MCP inbox (`http://192.168.1.114:3010`). 当 baobei/kimi/xiaomu 发新消息给 claude 时, 自动唤醒 claude 主 session 处理.
+一个 Claude Code plugin, 持续 patrol your Collab MCP inbox (`http://<YOUR_MCP_HOST>:<YOUR_MCP_PORT>`). 当 <AGENT_A>/<AGENT_B>/<HUMAN_OPERATOR> 发新消息给 claude 时, 自动唤醒 claude 主 session 处理.
 
 ## 跟原 watcher 的区别
 
 | 项 | 原 watcher (`~/.claude/patrol/`) | Plugin 版 (`claude-collab-patroller`) |
 |---|---|---|
 | **触发** | 需要手动启动 | UserPromptSubmit hook 自动确保在跑 |
-| **协议** | `mcp-collab-claude.sh` (✓) | `mcp-collab-claude.sh` (✓ 一致) |
+| **协议** | `<YOUR_AGENT_SCRIPT>` (✓) | `<YOUR_AGENT_SCRIPT>` (✓ 一致) |
 | **Lib modular** | 单一脚本 | `lib/lock.sh` + `lib/common.sh` (telegrammer 模式) |
 | **Self-test** | 无 | 内置 (lock self-test, hook self-test) |
 | **Fail-loud guards** | 3 个 (key 文件 + 脚本 + API) | 4 个 (+ env guard unexpanded ${…}) |
 | **Hook 集成** | 无 | UserPromptSubmit 自动唤醒检查 |
-| **跨平台 path** | hardcode `/d/myopenclaw/...` | `cygpath -w` fallback |
+| **跨平台 path** | hardcode `/<YOUR_PROJECT_PATH>/...` | `cygpath -w` fallback |
 
 ## 何时使用
 
 当你需要:
 - claude session 重启后自动恢复 patrol (UserPromptSubmit hook 触发)
-- 不能漏 baobei/kimi 消息 (fail-open + 60s 节流)
+- 不能漏 agent 消息 (fail-open + 60s 节流)
 - 跟其他 watcher 共享 collab-mcp 协议 (避免脚本异构)
 - 接受 telegrammer 风格的设计模式 (PID lock + clean shutdown)
 
@@ -66,7 +66,7 @@ bash ~/.claude/plugins/claude-collab-patroller/scripts/msg-watcher-collab.sh
 仿 telegrammer fails-loud (4 个 env guard):
 
 1. `claude-api-key 文件存在` (Lesson #110 物理隔离)
-2. `mcp-collab-claude.sh 脚本存在`
+2. `<YOUR_AGENT_SCRIPT> 脚本存在`
 3. `env var 没 unexpanded ${…}` (telegrammer fails-loud #1)
 4. `collab-mcp API 可达` (启动时 list-pending 验证)
 
@@ -95,5 +95,5 @@ bash ~/.claude/plugins/claude-collab-patroller/scripts/msg-watcher-collab.sh
 ## 关联
 
 - [claude-code-telegrammer](https://github.com/scitex-ai/claude-code-telegrammer) - 设计灵感来源 (协议换成 collab-mcp)
-- [mcp-collab-claude.sh](../../../../../d/myopenclaw/scripts/mcp-collab-claude.sh) - Claude 物理隔离脚本 (Lesson #110)
-- [kimi MSG-MONITOR-DESIGN.md](../../../../../c/Users/SUISHUO-GK/.kimi-code/patrol/MSG-MONITOR-DESIGN.md) - 5 事故档案 + 监控设计原则
+- [<YOUR_AGENT_SCRIPT>](../../../../..<PATH_TO_MCP_COLLAB_SCRIPT>) - Claude 物理隔离脚本 (Lesson #110)
+- [kimi MSG-MONITOR-DESIGN.md](../../../../..<PATH_TO_KIMI_MONITOR_DESIGN_DOC>) - 5 事故档案 + 监控设计原则

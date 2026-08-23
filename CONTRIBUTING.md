@@ -51,7 +51,7 @@ gh pr create --title "feat: ..." --body "..."
 
 - **仿 claude-code-telegrammer 成熟模式**: PID lock + clean shutdown + fails loud + Start-Process 自续命
 - **kimi MSG-MONITOR-DESIGN.md 原则**: fail-open + 60s 节流, 不用 setsid/nohup
-- **TrustChain Lesson #110**: claude 物理隔离 (mcp-collab-claude.sh, 不是共享脚本)
+- **your Project Lesson #110**: claude 物理隔离 (<YOUR_AGENT_SCRIPT>, 不是共享脚本)
 - **Lesson #408**: 不覆盖已有实现, 加新文件共存
 - **AGPL-3.0**: 跟上游 claude-code-telegrammer 一致
 

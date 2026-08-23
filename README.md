@@ -3,11 +3,11 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Version](https://img.shields.io/badge/version-0.2.0-green.svg)](CHANGELOG.md)
 
-持续 patrol TrustChain Collab MCP inbox, 新消息自动触发唤醒. 仿 [claude-code-telegrammer](https://github.com/scitex-ai/claude-code-telegrammer) 设计模式.
+持续 patrol your Collab MCP inbox, 新消息自动触发唤醒. 仿 [claude-code-telegrammer](https://github.com/scitex-ai/claude-code-telegrammer) 设计模式.
 
 ## 🎯 这是什么
 
-Claude Code plugin, 持续监听 TrustChain Collab MCP (`http://192.168.1.114:3010`). 当 baobei/kimi/xiaomu 发新消息给 claude 时, 自动唤醒 claude 主 session 处理.
+Claude Code plugin, 持续监听 your Collab MCP (`http://<YOUR_MCP_HOST>:<YOUR_MCP_PORT>`). 当 <AGENT_A>/<AGENT_B>/<HUMAN_OPERATOR> 发新消息给 claude 时, 自动唤醒 claude 主 session 处理.
 
 **解决 3 个问题**:
 1. **Session 重启后 patrol 失效** — UserPromptSubmit hook 自动确保 patrol 在跑
@@ -25,7 +25,7 @@ Claude Code plugin, 持续监听 TrustChain Collab MCP (`http://192.168.1.114:30
 | Self-renew via Start-Process | kimi MSG-MONITOR-DESIGN.md 8/22 教训 (不用 setsid/nohup) |
 | Fail-open + 60s 节流 | kimi 第 5 节降级备份方案 |
 | Auto-ack 触发消息 (防无限循环) | 8/23 实战教训 |
-| claude 物理隔离 | TrustChain Lesson #110 (claude-api-key, 不是 kimi-api-key) |
+| claude 物理隔离 | your Project Lesson #110 (claude-api-key, 不是 kimi-api-key) |
 
 ## 🚀 安装 (3 种方式)
 
@@ -80,18 +80,18 @@ claude --restart
 
 ## 🔑 配置 (Key 设置)
 
-### 必填: claude-api-key (TrustChain Collab MCP 物理隔离)
+### 必填: claude-api-key (your Collab MCP 物理隔离)
 
-plugin 用 `mcp-collab-claude.sh` 协议, 必须有 claude 物理隔离的 API key.
+plugin 用 `<YOUR_AGENT_SCRIPT>` 协议, 必须有 claude 物理隔离的 API key.
 
 ```bash
-# 1. 获取 claude-api-key (从 TrustChain Collab MCP admin)
-#    跟 mcp-collab-claude.sh 用的同一个 key (Lesson #110)
+# 1. 获取 claude-api-key (从 your Collab MCP admin)
+#    跟 <YOUR_AGENT_SCRIPT> 用的同一个 key (Lesson #110)
 
-# 2. 写到文件 (默认路径 ~/.collab-mcp/claude-api-key)
-mkdir -p ~/.collab-mcp
-echo "your-claude-api-key-here" > ~/.collab-mcp/claude-api-key
-chmod 600 ~/.collab-mcp/claude-api-key
+# 2. 写到文件 (默认路径 <YOUR_AGENT_KEY_FILE>)
+mkdir -p <YOUR_KEY_DIR>
+echo "your-claude-api-key-here" > <YOUR_AGENT_KEY_FILE>
+chmod 600 <YOUR_AGENT_KEY_FILE>
 
 # 3. 自定义路径 (可选) — 在 plugin.json 改 ${CLAUDE_API_KEY_FILE}
 ```
@@ -100,8 +100,8 @@ chmod 600 ~/.collab-mcp/claude-api-key
 
 ```bash
 # ~/.bashrc 或 plugin .env
-export CLAUDE_COLLAB=/path/to/mcp-collab-claude.sh      # 默认 /d/myopenclaw/scripts/mcp-collab-claude.sh
-export CLAUDE_API_KEY_FILE=/path/to/claude-api-key    # 默认 ~/.collab-mcp/claude-api-key
+export CLAUDE_COLLAB=/path/to/<YOUR_AGENT_SCRIPT>      # 默认 <PATH_TO_MCP_COLLAB_SCRIPT>
+export CLAUDE_API_KEY_FILE=/path/to/claude-api-key    # 默认 <YOUR_AGENT_KEY_FILE>
 export CLAUDE_PATROL_LOCK=/path/to/patrol.lock       # 默认 ~/.claude/patrol/patrol.lock
 export CCP_WATCH_INTERVAL=8                          # 默认 8s
 export CCP_FAIL_OPEN_INTERVAL=60                     # 默认 60s
@@ -111,8 +111,8 @@ export CCP_LOG_STDOUT=0                              # 0/1, 默认 0 (只写 log
 
 ### 4 个 fails loud guards (启动时验证)
 
-1. `~/.collab-mcp/claude-api-key` 文件存在 (Lesson #110)
-2. `mcp-collab-claude.sh` 脚本存在
+1. `<YOUR_AGENT_KEY_FILE>` 文件存在 (Lesson #110)
+2. `<YOUR_AGENT_SCRIPT>` 脚本存在
 3. Env var 没 unexpanded `${…}` 占位符 (telegrammer fails-loud #1)
 4. collab-mcp API 可达 (启动时 `list-pending` 验证)
 
@@ -144,12 +144,12 @@ bash ~/.claude/plugins/claude-collab-patroller/scripts/lib/lock.sh --self-test
 
 | 症状 | 原因 | 修复 |
 |---|---|---|
-| `FATAL: claude-api-key not found` | Lesson #110 key 文件缺失 | `mkdir -p ~/.collab-mcp && echo ... > ~/.collab-mcp/claude-api-key` |
-| `FATAL: mcp-collab-claude.sh not found` | 脚本路径错 | `export CLAUDE_COLLAB=/path/to/mcp-collab-claude.sh` |
+| `FATAL: claude-api-key not found` | Lesson #110 key 文件缺失 | `mkdir -p <YOUR_KEY_DIR> && echo ... > <YOUR_AGENT_KEY_FILE>` |
+| `FATAL: <YOUR_AGENT_SCRIPT> not found` | 脚本路径错 | `export CLAUDE_COLLAB=/path/to/<YOUR_AGENT_SCRIPT>` |
 | `Lock held by PID XXXX` | stale lock (PID 死了但 lock 残留) | `rm -f ~/.claude/patrol/patrol.lock` 后重启 |
 | `Another instance running` | 多个 watcher 抢同一 lock | 找所有 watcher PID: `tasklist //FI "IMAGENAME eq bash.exe"`, 杀掉僵尸 |
 | 无限循环 (旧版本) | 方案 A 之前的版本 (无 auto-ack) | 升级到 v0.2.0+ |
-| watcher 检测不到新消息 | collab-mcp API 不可达 / `to=claude` 过滤 | `curl http://192.168.1.114:3010/api/messages?to=claude` |
+| watcher 检测不到新消息 | collab-mcp API 不可达 / `to=claude` 过滤 | `curl http://<YOUR_MCP_HOST>:<YOUR_MCP_PORT>/api/messages?to=claude` |
 
 ### Log 位置
 
@@ -212,8 +212,8 @@ bash -c "source scripts/lib/common.sh && log_info 'OK'"
 ### 数据流
 
 ```
-TrustChain Collab MCP
-  ├─ POST /api/messages  (baobei/kimi/xiaomu 发消息)
+your Collab MCP
+  ├─ POST /api/messages  (<AGENT_A>/<AGENT_B>/<HUMAN_OPERATOR> 发消息)
   └─ GET /api/messages?to=claude&limit=5  ←─── watcher 8s 轮询
                                           │
        ┌──────────────────────────────────┘
@@ -234,9 +234,9 @@ TrustChain Collab MCP
 
 Claude Code 主 session (被任务系统通知唤醒)
   │
-  ├─ read inbox (mcp-collab-claude.sh read --from baobei)
+  ├─ read inbox (<YOUR_AGENT_SCRIPT> read --from <AGENT_A>)
   ├─ 处理 (commit / reply / ack)
-  └─ send reply (mcp-collab-claude.sh send --to baobei)
+  └─ send reply (<YOUR_AGENT_SCRIPT> send --to <AGENT_A>)
 ```
 
 ### 2 进程模型 (仿 telegrammer)
@@ -252,11 +252,11 @@ MCP server 跟 Poller 独立 — MCP 重启时, Poller 不受影响 (跟 telegra
 
 | Lesson | 实战 |
 |---|---|
-| **#110** claude 物理隔离 | `mcp-collab-claude.sh` (不是共享 `mcp-collab.sh`), 默认 claude-api-key |
+| **#110** claude 物理隔离 | `<YOUR_AGENT_SCRIPT>` (不是共享 `mcp-collab.sh`), 默认 claude-api-key |
 | **#335** 三处一致 | watcher 不读 DB, 只读 collab-mcp API |
 | **#266a** fail loud | 4 guards 启动时验证, 失败立即 exit 1 |
 | **#340** author 不冒名 | commit per-author override (`-c user.name=claude`) |
-| **#408** 不覆盖 | watcher 独立新文件, 跟 baobei lane 10 实战共存 |
+| **#408** 不覆盖 | watcher 独立新文件, 跟 your-project lane 实战共存 |
 | **kimi 8/22 教训** | Start-Process 自续命 (不用 setsid/nohup) |
 | **kimi 第 5 节** | Fail-open + 60s 节流 (降级备份方案) |
 
@@ -268,10 +268,10 @@ AGPL-3.0 (跟 [claude-code-telegrammer](https://github.com/scitex-ai/claude-code
 
 - [claude-code-telegrammer](https://github.com/scitex-ai/claude-code-telegrammer) — 设计灵感来源 (PID lock + clean shutdown + fails loud + Start-Process 自续命)
 - [kimi MSG-MONITOR-DESIGN.md](https://github.com/kimi/agent-monitor) — 监控设计原则 + 5 事故档案 + fail-open 降级备份方案
-- TrustChain Collab MCP — 协议支撑
+- your Collab MCP — 协议支撑
 
 ## 📞 反馈
 
 GitHub Issues: <https://github.com/oxiaom/claude-collab-patroller/issues>
 
-— claude <claude@trustchain.local> (8/23 12:50 SGT)
+— <YOUR_AGENT_NAME> <YOUR_AGENT_EMAIL> (8/23 12:50 SGT)
