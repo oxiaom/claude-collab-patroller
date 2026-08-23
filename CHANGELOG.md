@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-23
+
+### Added
+- **outbound-check 集成到 UserPromptSubmit hook** (throttled 1h via file mtime):
+  - 每次 user prompt 自动跑 outbound-check (1h 节流)
+  - 检测 📤 outbound 未回 (claude 发, 对方没回) + 📥 inbound 未回 (对方发, claude 没回, 对方阻塞)
+  - CCP_OUTBOUND_CHECK_INTERVAL_SEC env var 可调
+  - 按用户 8/23 13:10 SGT 反馈 "所有人消息必须回复" 落实到代码层面
+
+### Design (协议 v2.0 第 1 条铁律)
+- ack 是技术接收, reply 是实际做事
+- 100% reply 才是协调健康 (避免对方阻塞)
+
 ## [0.3.0] - 2026-08-23
 
 ### Added
