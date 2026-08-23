@@ -29,21 +29,21 @@ Claude Code plugin, 持续监听 your Collab MCP (`http://<YOUR_MCP_HOST>:<YOUR_
 
 ## 🚀 安装 (3 种方式)
 
-### 方式 1: 通过 GitHub Marketplace (推荐)
+### 方式 1: 通过 Claude Code Marketplace (推荐)
 
 ```bash
-# 1. 添加 Marketplace source (一次性)
-gh repo add-source claude-collab-patroller \
-  https://github.com/oxiaom/claude-collab-patroller.git
+# 1. 添加 marketplace source (一次性, 仓根有 .claude-plugin/marketplace.json)
+# 在 Claude Code 里直接调:
+/plugin marketplace add https://github.com/oxiaom/claude-collab-patroller.git
 
-# 2. 安装 plugin
-claude plugin install claude-collab-patroller
-# 或
-gh plugin install oxiaom/claude-collab-patroller
+# 2. 安装 plugin (从 marketplace 列表里选)
+/plugin install claude-collab-patroller
 
 # 3. 验证
-claude plugin list
+/plugin list
 ```
+
+> **注意**: 仓根需要 `.claude-plugin/marketplace.json` 文件 (Claude Code 自动找). claude-collab-patroller 仓已有此文件 (commit `d9703c4`).
 
 ### 方式 2: 直接 Git 克隆 (本地开发 / 测试)
 
