@@ -49,6 +49,10 @@ LOG_DIR="${CLAUDE_PATROL_LOG_DIR:-${HOME}/.claude/patrol/logs}"
 mkdir -p "$LOG_DIR"
 LOG_PATH="$LOG_DIR/$(basename "$0").log"
 
+OUTBOUND_CHECK="$PLUGIN_ROOT/scripts/outbound-check.sh"
+OUTBOUND_CHECK_TS_FILE="$LOG_DIR/.last-outbound-check"
+OUTBOUND_CHECK_INTERVAL_SEC="${CCP_OUTBOUND_CHECK_INTERVAL_SEC:-3600}"  # 默认 1h
+
 log() { printf '[%s] [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "${*:2}" >> "$LOG_PATH" 2>&1; }
 
 # 读 stdin (Claude Code hook 协议)
