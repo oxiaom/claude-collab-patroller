@@ -11,16 +11,20 @@
 //   - Watcher wake injection bug (claude-collab-patroller-v0-2-review): plugin 必须有唤醒机制
 
 const { spawn } = require('child_process')
+const { writeFileSync, existsSync, mkdirSync } = require('fs')
+const { join } = require('path')
 
 class Wake {
   /**
    * @param {Object} config
    * @param {string} [config.method='claude-print'] wake 通道
    * @param {string} [config.claudePath='claude'] claude CLI 路径 (PATH 上即可)
+   * @param {string} [config.fileMarkerDir] file-marker 写入目录
    */
   constructor(config = {}) {
     this.method = config.method || process.env.CCP_WAKE_METHOD || 'claude-print'
     this.claudePath = config.claudePath || 'claude'
+    this.fileMarkerDir = config.fileMarkerDir || process.env.CCP_WAKE_MARKER_DIR
   }
 
   /**
@@ -34,6 +38,8 @@ class Wake {
     switch (this.method) {
       case 'claude-print':
         return this._claudePrint(prompt)
+      case 'file-marker':
+        return this._fileMarker(msg)
       case 'send-message':
         // Future: 通过 Claude Code IPC 调 SendMessage to main
         // 需要 watcher 本身是 Background Agent (per SessionStart hook)
@@ -106,6 +112,30 @@ class Wake {
       return { method: 'webhook', ok: res.ok, status: res.status }
     } catch (e) {
       return { method: 'webhook', ok: false, error: e.message }
+    }
+  }
+
+  async _fileMarker(msg) {
+    if (!this.fileMarkerDir) {
+      return { method: 'file-marker', ok: false, error: 'fileMarkerDir not set' }
+    }
+    try {
+      if (!existsSync(this.fileMarkerDir)) {
+        mkdirSync(this.fileMarkerDir, { recursive: true })
+      }
+      const filename = `wake-${msg.id}-${msg.from || 'unknown'}-${Date.now()}.json`
+      const path = join(this.fileMarkerDir, filename)
+      const data = {
+        msg_id: msg.id,
+        from_user: msg.from,
+        action: 'WAKE',
+        timestamp: new Date().toISOString(),
+        content_preview: (msg.content || '').slice(0, 500),
+      }
+      writeFileSync(path, JSON.stringify(data, null, 2))
+      return { method: 'file-marker', ok: true, path }
+    } catch (e) {
+      return { method: 'file-marker', ok: false, error: e.message }
     }
   }
 }
