@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-23
+
+### Added
+- **outbound-check.sh**: claude outbound 消息回复状态检查 (用户 8/23 13:10 SGT 反馈: "所有人消息必须回复, 落实到代码层面")
+  - 📤 outbound 未回 (claude 发, 对方没回, 按 age_min 降序)
+  - 📥 inbound 未回 (对方发, claude 没回, 对方阻塞等待)
+  - CCP_OUTBOUND_HORIZON_MIN (默认 60m)
+- marketplace.json (在 `.claude-plugin/marketplace.json`, 让 `/plugin marketplace add <github-url>` 识别)
+
+### Design (协议 v2.0 第 1 条铁律)
+- ack 是技术接收, reply 是实际做事
+- 100% reply 才是协调健康 (避免对方阻塞)
+
 ## [0.2.0] - 2026-08-23
 
 ### Added

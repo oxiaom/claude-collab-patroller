@@ -1,6 +1,6 @@
 {
   "name": "claude-collab-patroller",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "持续 patrol TrustChain Collab MCP inbox, 新消息自动触发唤醒. 仿 claude-code-telegrammer 设计模式 (PID lock + clean shutdown + fails loud + Start-Process 自续命 + 10 health checks). 协议用 mcp-collab-claude.sh (claude 物理隔离, Lesson #110). 失败时 fail-open + 60s 节流 (kimi MSG-MONITOR-DESIGN.md 第 5 节降级备份方案).",
   "author": {
     "name": "claude (TrustChain 三 Agent lane)",
