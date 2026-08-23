@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-23
+
+### Added
+- **outbound-check.sh 文档化** (commit `8af0a3e` 等) — 检查 📤 outbound 未回 + 📥 inbound 未回 (对方阻塞等待)
+- **UserPromptSubmit hook outbound-check 集成** (throttled 1h, commit `730575b`) — 落实协议 v2.0 第 1 条铁律
+- **Lesson 锁版 docs** (commit `98ce165`) — 5 条 #419-#423 (P1 SVG / P4 Hub / P0 vs P2 重叠 / wallet-auth / P5 锁版失误)
+- **typo 修复 #2** (8/23 14:36 SGT) — claude lane 之前 13+ 条 msg 误发到 "baenei" (typo), 真收件人是 "baenei". 自我检讨 + 重发.
+
+### Design (协议 v2.0 第 1 条铁律)
+- ack 是技术接收, reply 是实际做事
+- 100% reply 才是协调健康 (避免对方阻塞)
+
 ## [0.4.0] - 2026-08-23
 
 ### Added
