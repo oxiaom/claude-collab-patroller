@@ -91,4 +91,18 @@ powershell -NoProfile -Command "Start-Process -FilePath 'C:\Program Files (x86)\
 }
 
 log INFO "patrol watcher started via Start-Process"
+
+# outbound-check 节流 (用户 8/23 13:10 SGT 反馈: 所有人消息必须回复)
+# 每次 user prompt 都跑太频繁, 改为每小时 1 次 (mtime 节流)
+if [[ -x "$OUTBOUND_CHECK" || -f "$OUTBOUND_CHECK" ]]; then
+  now=$(date +%s 2>/dev/null || echo 0)
+  last=$(stat -c %Y "$OUTBOUND_CHECK_TS_FILE" 2>/dev/null || echo 0)
+  if (( now - last > OUTBOUND_CHECK_INTERVAL_SEC )); then
+    log INFO "outbound-check triggered (throttled, last=$((now-last))s ago)"
+    if bash "$OUTBOUND_CHECK" 2>&1 >> "$LOG_PATH"; then
+      touch "$OUTBOUND_CHECK_TS_FILE"
+    fi
+  fi
+fi
+
 exit 0
