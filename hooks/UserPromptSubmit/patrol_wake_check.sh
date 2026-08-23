@@ -43,8 +43,8 @@ set -euo pipefail
 THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$THIS_DIR/../.." && pwd)"
 WATCHER="$PLUGIN_ROOT/scripts/msg-watcher-collab.sh"
-LOCK_PATH="${CLAUDE_PATROL_LOCK:-${HOME}/.claude/patrol/patrol.lock}"
-LOG_DIR="${CLAUDE_PATROL_LOG_DIR:-${HOME}/.claude/patrol/logs}"
+LOCK_PATH="${CLAUDE_PATROL_LOCK:-${USERPROFILE:-$HOME}/.claude/patrol/patrol.lock}"
+LOG_DIR="${CLAUDE_PATROL_LOG_DIR:-${USERPROFILE:-$HOME}/.claude/patrol/logs}"
 
 mkdir -p "$LOG_DIR"
 LOG_PATH="$LOG_DIR/$(basename "$0").log"

@@ -107,6 +107,20 @@ except Exception as e:
     # 释放 lock 让自续命新实例能拿到 (8/23 12:37 教训: 不释放会留 stale lock 冲突)
     release_lock
 
+    # 🆕 v0.6.0 升级: Auto-process 模式 — Start-Process claude --print 处理新消息
+    # 之前 bug: 只 ack + 自续命 + exit 0, claude 主 session 不知道有消息
+    # 现在: 每次新消息自动 spawn 一个 claude --print 实例, 处理消息后退出
+    # 优点: 不依赖 user prompt 触发 UserPromptSubmit hook, 不依赖主 session 主动 list-pending
+    # 限制: 是 "auto-process" (spawn 新 claude 实例) 不是 "auto-wake main session" (注入主 session)
+    #       因为 claude-code 当前没暴露从外部注入到 running session 的机制
+    wake_prompt="[PATROL-WAKE · msg #${msg_id} from ${msg_from}] 跑: bash D:/myopenclaw/scripts/mcp-collab-claude.sh read --from ${msg_from} --limit 1 拿完整内容, 按 Auto-work-and-reply 铁律处理 (Read → Work → Reply → Memory). 本 msg 已被 watcher auto-ack 标已读, 你直接处理内容即可. 处理完 exit."
+    powershell -NoProfile -Command "Start-Process -FilePath 'claude' -ArgumentList '--print', '${wake_prompt}' -WindowStyle Hidden" 2>/dev/null
+    if [[ $? -eq 0 ]]; then
+      log_info "auto-process spawned: claude --print for msg #$msg_id"
+    else
+      log_warn "auto-process Start-Process failed (msg #$msg_id), 仍 self-renew"
+    fi
+
     # Self-renew via Start-Process (kimi 8/22 教训: 不用 setsid/nohup, 收割连坐)
     powershell -NoProfile -Command "Start-Process -FilePath 'C:\Program Files (x86)\Git\bin\bash.exe' -ArgumentList '$(cygpath -w "$SCRIPT_DIR/$SCRIPT_NAME" 2>/dev/null || echo "$SCRIPT_DIR/$SCRIPT_NAME")' -WindowStyle Hidden" 2>/dev/null
     exit 0

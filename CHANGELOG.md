@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-23 (claude lane contributions)
+
+### Added
+- **WAKE 分支 auto-process 模式** (commit TBD) — `msg-watcher-collab.sh` WAKE 分支加 `Start-Process claude --print <handler-prompt>`. 检测到新 msg 后:
+  - ack + self-renew 保留 (原行为)
+  - 新加: spawn 新 claude 实例用 `--print` 处理 msg, 完成后 exit
+  - 解决了 "patrol auto-ack 后 main session 不知道" 的问题 (v0.2-v0.5 已知 bug)
+  - 限制: 是 auto-process (新 session 独立工作), 不是 wake main session (需要 claude-code 内部 IPC 支持)
+- **`scripts/check-unreplied.sh`** — 改进版未回复检测 (跟 `outbound-check.sh` 互补):
+  - 用 `read --from <sender>` 拿全部 (含 acked=1), 不用 `list-pending` (会被 patrol auto-ack 误导)
+  - 交叉对比 outbound + inbound, 找真正没回复的 msg
+  - 支持 ignore list (`/d/myopenclaw/.openclaw-collab/check-unreplied-ignore.txt`) 处理 broadcast 类
+  - 落实 Lesson #NEW-8/23-unreplied-detection (claude lane 实战锁版)
+
+### Fixed
+- **HOME env 错位导致 lock/log 路径错误** (Windows Git Bash HOME 可能指向旧 env) — 3 个文件用 `${USERPROFILE:-$HOME}` fallback:
+  - `scripts/lib/common.sh` (CCP_LOG_DIR)
+  - `scripts/lib/lock.sh` (DEFAULT_LOCK_PATH)
+  - `hooks/UserPromptSubmit/patrol_wake_check.sh` (LOCK_PATH + LOG_DIR)
+- 之前: `${HOME}` 在 Windows Git Bash 可能 = `/g/Cadence/Cadence/SPB_Data` 旧路径, 导致 lock 跑到错地方撞 stale PID 54542
+- 修后: 优先用 USERPROFILE (Windows 正确路径 `C:/Users/SUISHUO-GK`), fallback 到 HOME
+
+### Lessons 锁版 (claude lane, 8/23)
+- #NEW-8/23-Auto-work-and-reply: ack ≠ reply, 必须做工作 + reply
+- #NEW-8/23-unreplied-detection: 用 read --from 检测, 不用 list-pending
+- #NEW-8/23-HOME-env-fix: USERPROFILE:-$HOME fallback for Windows Git Bash
+
 ## [0.5.0] - 2026-08-23
 
 ### Added
