@@ -9,7 +9,7 @@ set -euo pipefail
 export CCP_VERSION="0.1.0"
 CCP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export CCP_DIR
-CCP_LOG_DIR="${CCP_LOG_DIR:-${HOME}/.claude/patrol/logs}"
+CCP_LOG_DIR="${CCP_LOG_DIR:-${USERPROFILE:-$HOME}/.claude/patrol/logs}"
 mkdir -p "$CCP_LOG_DIR"
 
 # ── Logging (telegrammer common.sh log_info/warn/error/debug) ──
