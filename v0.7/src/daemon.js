@@ -19,6 +19,7 @@
 
 const Watcher = require('./watcher')
 const Wake = require('./wake')
+const Watchdog = require('./watchdog')
 const logger = require('./logger')
 const { setLogLevel } = logger
 const health = require('./health')
@@ -51,6 +52,17 @@ class Daemon {
       onError: (err, ctx) => logger.error('source-error', { error: err.message, ...ctx }),
     })
 
+    // Init Watchdog (claude.exe crash detection, Phase 1.4)
+    this.watchdog = new Watchdog({
+      claudePid: process.env.CCP_CLAUDE_PID,
+      checkIntervalMs: config.watchdog?.checkIntervalMs || 60000,
+      onCrash: async (err) => {
+        logger.error('watchdog-crash-alert', { error: err.message })
+        // Future: 推送到 webhook / Slack / PagerDuty
+        // 当前: log + metric (Phase 1.4 scope)
+      },
+    })
+
     // Init Health HTTP endpoint
     if (config.health.enabled) {
       this.healthServer = health.createServer({
@@ -59,7 +71,10 @@ class Daemon {
           pid: process.pid,
           uptime: Math.floor((Date.now() - this.startTime) / 1000),
           sources: this.watcher.getSourcesStatus(),
-          metrics: this.watcher.getMetrics(),
+          metrics: {
+            ...this.watcher.getMetrics(),
+            watchdog: this.watchdog?.getMetrics() || {},
+          },
         }),
         port: config.health.port,
         host: config.health.host,
@@ -76,6 +91,14 @@ class Daemon {
     } catch (e) {
       logger.error('watcher-start-failed', { error: e.message })
       process.exit(1)
+    }
+
+    // Start watchdog (non-blocking, runs in background)
+    if (this.watchdog.claudePid) {
+      // Don't await — let it run in background
+      this.watchdog.start().catch(e => {
+        logger.error('watchdog-start-failed', { error: e.message })
+      })
     }
 
     // Start health server
@@ -97,6 +120,7 @@ class Daemon {
       try {
         if (this.healthServer) await this.healthServer.stop()
         if (this.watcher) await this.watcher.stop()
+        if (this.watchdog) await this.watchdog.stop()
         logger.info('shutdown-complete', { uptimeSec: Math.floor((Date.now() - this.startTime) / 1000) })
         process.exit(0)
       } catch (e) {
