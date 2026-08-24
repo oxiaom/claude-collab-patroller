@@ -41,14 +41,87 @@ class Wake {
       case 'file-marker':
         return this._fileMarker(msg)
       case 'send-message':
-        // Future: 通过 Claude Code IPC 调 SendMessage to main
-        // 需要 watcher 本身是 Background Agent (per SessionStart hook)
-        return { method: 'send-message', ok: false, error: 'not yet implemented' }
+        return this._sendMessage(prompt, msg)
       case 'webhook':
         return this._webhook(prompt, msg)
       default:
         return { method: this.method, ok: false, error: `unknown method: ${this.method}` }
     }
+  }
+
+  /**
+   * send-message: wake main session via Claude Code IPC
+   *
+   * 实现机制 (Phase 1.3):
+   *   1. 写 wake marker 文件 (跟 file-marker 一样, 但带 session-id)
+   *   2. spawn `claude --resume <main_session_id> --print <prompt>` 试图注入到 main session
+   *   3. (fallback) 如果 --resume spawn 新 session 不 inject, 改用 file-marker + main session 自己轮询
+   *
+   * 限制 (老实承认):
+   *   - claude-code 当前没暴露从外部进程 inject 到 running session 的 API
+   *   - --resume 实测是 spawn 新 session (同 sessionId), 不是 inject 到现有 59872 daemon
+   *   - 真正 wake main session 需要 Background Agent sub-agent + SendMessage tool
+   *   - 外部 daemon 无法 spawn  sub-agent (claude --bg 不暴露 SendMessage)
+   *
+   * 推荐方案:
+   *   - 用 `method: file-marker` + main session 启动时跑 Background Agent (如 a119676497106ea3f) 读 marker + SendMessage
+   *   - send-message method 仅作为 Phase 1.3 实验, 记录限制
+   */
+  async _sendMessage(prompt, msg) {
+    // 先写 marker (跟 file-marker 一样)
+    const markerResult = await this._fileMarker(msg)
+    if (!markerResult.ok) {
+      return { method: 'send-message', ok: false, error: 'file-marker failed: ' + markerResult.error }
+    }
+
+    // 试图 spawn claude --resume 注入到 main session
+    // 实际: --resume spawn 新 session (用同 sessionId), 不 inject 到现有 daemon
+    // 所以 send-message 实际等同于 file-marker + claude --print spawn
+    const mainSessionId = this.mainSessionId || process.env.CCP_MAIN_SESSION_ID
+    if (!mainSessionId) {
+      return {
+        method: 'send-message',
+        ok: false,
+        error: 'mainSessionId not set (CCP_MAIN_SESSION_ID env var); falling back to file-marker only',
+        markerPath: markerResult.path,
+      }
+    }
+
+    // 尝试 spawn claude --resume (实验性 — 已知限制)
+    return new Promise((resolve) => {
+      try {
+        const injectPrompt = `[AUTO-WAKE · plugin v0.7] ${prompt}`
+        const proc = spawn('claude', [
+          '--resume', mainSessionId,
+          '--print', injectPrompt,
+        ], {
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true,
+          shell: true,
+        })
+        proc.unref()
+        proc.on('error', (err) => {
+          resolve({
+            method: 'send-message',
+            ok: false,
+            error: 'claude --resume spawn failed: ' + err.message,
+            markerPath: markerResult.path,
+          })
+        })
+        proc.on('spawn', () => {
+          resolve({
+            method: 'send-message',
+            ok: true,
+            pid: proc.pid,
+            markerPath: markerResult.path,
+            note: 'marker written + claude --resume spawned (experimental — may spawn new session not inject)',
+          })
+        })
+      } catch (e) {
+        resolve({ method: 'send-message', ok: false, error: e.message })
+      }
+    })
   }
 
   _buildPrompt(msg) {

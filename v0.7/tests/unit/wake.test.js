@@ -104,12 +104,39 @@ describe('Wake', () => {
   })
 
   describe('send-message method', () => {
-    it('should report not-yet-implemented', async () => {
-      wake = new Wake({ method: 'send-message' })
+    it('should report error if mainSessionId not set', async () => {
+      // No mainSessionId provided, no env var → should return error
+      delete process.env.CCP_MAIN_SESSION_ID
+      wake = new Wake({ method: 'send-message', fileMarkerDir: tmpMarkerDir })
       const msg = { id: 300, from: 'baobei', content: 'x', source: 'collab-mcp' }
       const result = await wake.wake(msg)
+      expect(result.method).toBe('send-message')
       expect(result.ok).toBe(false)
-      expect(result.error).toContain('not yet implemented')
+      expect(result.error).toContain('mainSessionId not set')
+      // Should still write marker
+      expect(result.markerPath).toBeTruthy()
+    })
+
+    it('should write marker + try spawn claude --resume if mainSessionId set', async () => {
+      wake = new Wake({
+        method: 'send-message',
+        fileMarkerDir: tmpMarkerDir,
+        mainSessionId: 'test-session-123',
+      })
+      const msg = { id: 301, from: 'kimi', content: 'urgent', source: 'collab-mcp' }
+      const result = await wake.wake(msg)
+      // Marker always written (regardless of spawn result)
+      expect(result.markerPath).toBeTruthy()
+      expect(existsSync(result.markerPath)).toBe(true)
+      // spawn result — ok or fail with spawn error (mock Claude not in test PATH may vary)
+      if (result.ok) {
+        expect(result.pid).toBeTruthy()
+        expect(result.note).toContain('experimental')
+      } else {
+        // If spawn failed, error should mention spawn
+        expect(typeof result.error).toBe('string')
+        expect(result.error.length).toBeGreaterThan(0)
+      }
     })
   })
 
