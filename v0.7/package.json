@@ -1,0 +1,56 @@
+{
+  "name": "claude-collab-patroller-daemon",
+  "version": "0.7.1",
+  "description": "Phase 1.2 persistent Node.js daemon for claude-collab-patroller plugin. Multi-source patrol watcher with auto-restart, health endpoint, multi-channel wake. Phase 1 commercial-grade hardening (8/24 01:25 SGT user拍板).",
+  "main": "src/daemon.js",
+  "bin": {
+    "claude-collab-patroller-daemon": "src/daemon.js"
+  },
+  "scripts": {
+    "start": "node src/daemon.js",
+    "dev": "node src/daemon.js --verbose",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "self-test": "node src/test-self-test.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:logs": "pm2 logs claude-collab-patroller-daemon",
+    "pm2:status": "pm2 status"
+  },
+  "keywords": [
+    "patrol",
+    "collab-mcp",
+    "watcher",
+    "telegrammer-inspired",
+    "PID-lock",
+    "clean-shutdown",
+    "fails-loud",
+    "fail-open",
+    "self-renew",
+    "claude-physical-isolation",
+    "multi-source",
+    "send-message",
+    "background-agent",
+    "nodejs-daemon",
+    "phase1-commercial-grade"
+  ],
+  "author": {
+    "name": "claude (TrustChain 三 Agent lane)",
+    "email": "claude@trustchain.local"
+  },
+  "license": "AGPL-3.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "optionalDependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "pm2": "^5.3.0"
+  },
+  "devDependencies": {
+    "supertest": "^6.3.0",
+    "vitest": "^1.6.1"
+  }
+}

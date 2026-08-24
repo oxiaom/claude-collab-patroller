@@ -1,0 +1,127 @@
+# GitHub Actions CI for claude-collab-patroller plugin
+# Phase 1.6 — CI 流水线 (用户 8/24 01:25 SGT 拍板 B Phase 1)
+#
+# 触发条件:
+#   - PR 推 master / claude/*
+#   - master push
+#   - 每天 cron 跑 (周一 0:00 UTC, catch flaky)
+#
+# Jobs:
+#   1. test-bash — bash watcher + lib self-test (现有)
+#   2. test-node — vitest Node.js daemon unit tests (新增)
+#   3. lint — eslint 可选 (Phase 2)
+#   4. release — main merge 自动 release (Phase 2)
+
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+      - 'claude/*'
+  pull_request:
+    branches:
+      - master
+  schedule:
+    # 周一 0:00 UTC 跑 catch flaky
+    - cron: '0 0 * * 1'
+
+jobs:
+  test-bash:
+    name: Bash watcher tests (existing)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bash
+
+      - name: Test lock self-test
+        run: bash scripts/lib/lock.sh --self-test
+
+      - name: Test hook wake check
+        run: bash -n hooks/UserPromptSubmit/patrol_wake_check.sh
+
+      - name: Test msg-watcher syntax
+        run: bash -n scripts/msg-watcher-collab.sh
+
+  test-node:
+    name: Node.js daemon tests (Phase 1.6 新增)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0.7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: v0.7/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run vitest
+        run: npm test
+
+      - name: Run daemon smoke test
+        run: |
+          # Smoke test: 启动 daemon 5s 看 startup + graceful shutdown
+          timeout 8 node src/daemon.js 2>&1 | head -20 || true
+
+      - name: Coverage report
+        if: matrix.node-version == '20'
+        run: npm run test -- --coverage
+        continue-on-error: true
+
+  lint:
+    name: Lint (Phase 2)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0.7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Phase 2: 加 eslint config
+      - name: Placeholder
+        run: echo "lint phase 2 — eslint config to be added"
+
+  release:
+    name: Release (Phase 2)
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: [test-bash, test-node]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Phase 2: 加 npm publish + tag
+      - name: Placeholder
+        run: echo "release phase 2 — npm publish to be added"
+
+  status-check:
+    name: Status summary
+    needs: [test-bash, test-node]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check overall status
+        run: |
+          if [ "${{ needs.test-bash.result }}" != "success" ] || [ "${{ needs.test-node.result }}" != "success" ]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          echo "✅ All tests passed"

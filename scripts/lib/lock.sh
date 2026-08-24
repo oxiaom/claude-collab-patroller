@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-DEFAULT_LOCK_PATH="${CLAUDE_PATROL_LOCK:-${HOME}/.claude/patrol/patrol.lock}"
+DEFAULT_LOCK_PATH="${CLAUDE_PATROL_LOCK:-${USERPROFILE:-$HOME}/.claude/patrol/patrol.lock}"
 
 # ── Acquire lock ──────────────────────────────────────
 acquire_lock() {

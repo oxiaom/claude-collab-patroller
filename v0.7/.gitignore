@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.tgz
+
+# Logs
+*.log
+logs/
+!logs/.gitkeep
+
+# Runtime
+.pid
+.lock
+*.sock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Logs (daemon-specific)
+daemon.log
+pm2-*.log
+# GitHub push protection 触发文件 (8/24 实测)
+.claude/
+*.stackdump
+*inbox*.json
+*patrol*.json
+*patrol*.log
+*patrol*.py
+*patrol*.sh
+*patrol*.txt
+scripts/patrol-*.sh
+scripts/patrol-*.py
+inbox-*.json
