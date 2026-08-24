@@ -19,6 +19,11 @@ const config = {
             : '/d/myopenclaw/scripts/mcp-collab-claude.sh'),
       apiKeyFile: process.env.CLAUDE_API_KEY_FILE,
       pollTimeoutMs: 30000,
+      // Phase 3.2: 白名单 (baobei→xiaomu cc 通道)
+      // CCP_ALLOW_TO_USERS env var 覆盖, comma-separated
+      allowToUsers: process.env.CCP_ALLOW_TO_USERS
+        ? process.env.CCP_ALLOW_TO_USERS.split(',').map(s => s.trim()).filter(Boolean)
+        : ['xiaomu', 'kimi'],
       enabled: true,
     },
     // Future: telegram source

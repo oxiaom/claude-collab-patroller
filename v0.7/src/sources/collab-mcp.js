@@ -88,14 +88,18 @@ class CollabMCPSource extends Source {
     }
 
     const msgs = data?.result?.messages || []
+    // Phase 3.2: 白名单 allowlist (baobei→xiaomu cc 通道, default ['xiaomu','kimi'])
+    // CCP_ALLOW_TO_USERS env var 覆盖, comma-separated
+    const allowToUsers = (process.env.CCP_ALLOW_TO_USERS || 'xiaomu,kimi')
+      .split(',').map(s => s.trim()).filter(Boolean)
     return msgs
-      .filter(m =>
-        // Accept both direct messages to claude + broadcast messages to all
-        // (to_user === 'all' = broadcast, claude IS part of 'all' so include)
-        (m.to_user === 'claude' || m.to_user === 'all')
-        && !m.acked
-        && m.from_user !== 'claude'
-      )
+      .filter(m => {
+        // Default: direct to claude OR broadcast to all
+        // Plus: allowlist (specific to_user from non-claude sender)
+        const toUser = m.to_user
+        const isAllowed = toUser === 'claude' || toUser === 'all' || allowToUsers.includes(toUser)
+        return isAllowed && !m.acked && m.from_user !== 'claude'
+      })
       .map(m => ({
         id: m.id,
         from: m.from_user,

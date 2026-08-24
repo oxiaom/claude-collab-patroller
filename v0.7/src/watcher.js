@@ -22,13 +22,18 @@ class Watcher {
     this.dedupe = new Dedupe(5 * 60 * 1000) // 5-min window
     this.running = false
 
+    // Phase 3.2 fix: 启动时设 last_poll_ts = now, 避免 backlog flush
+    // (v0.7.0/v0.7.1 bug: 启动时 last_poll_ts=null, 第一次 poll 拉所有历史, 写 21+ wake marker 1s 内 burst)
+    this.startupTime = Date.now()
+    this.lastPollTs = this.startupTime
+
     // Metrics
     this.metrics = {
       polls: 0,
       wakes_sent: 0,
       reminds_sent: 0,
       errors: 0,
-      last_poll_ts: null,
+      last_poll_ts: this.startupTime,
       last_wake_ts: null,
     }
 
