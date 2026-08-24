@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2-dev] - 2026-08-24 (Phase 3.2 daemon filter allowlist)
+
+### Added
+- **daemon filter allowlist (Phase 3.2)** — collab-mcp source filter 加 `allowToUsers` 白名单
+  - Default: `['xiaomu', 'kimi']` (baobei→xiaomu/kimi cc to claude 也 wake)
+  - Override: `CCP_ALLOW_TO_USERS` env var (comma-separated)
+  - 修法: baobei 8/24 14:11 SGT broadcast #16489 (to=xiaomu) 内容对 claude 重要 (kimi 自纠 + v3.2 升级), 但默认 filter 排除
+- **Lesson 锁版**: `v07-daemon-backlog-flush-on-startup-2026-08-24.md` (claude 专属 dir)
+  - 148 wake marker 在 daemon 启动 1s 内 burst 写 (历史积压)
+  - wake-handler adf33534100a0230e smart 检测 timestamp 密度 → 跳过 SendMessage
+  - 真修法 (Phase 3.3): 跟踪 max msg_id seen, filter `id > maxSeenId`
+
+### Fixed
+- **daemon 启动崩溃 bug** (8/24 14:18 SGT, v0.7.0/v0.7.1): `isWindows is not defined` ReferenceError in collab-mcp.js:42
+  - 根因: Phase 3 multi-platform 改造时, `isWindows()` 替代 `process.platform === 'win32'`, 但忘 import
+  - 修: `const { isWindows, getBashPath, getCollabPath } = require('../os-detect')`
+
+### Lesson 实战锁版 (8/24)
+
+- **#NEW**: daemon 启动 last_poll_ts 应该 = startup_time (避免 backlog flush)
+- **#NEW**: wake-handler smart pattern (timestamp density 检测) 避免 main session 轰炸
+- **#NEW**: AI agent 应判断再行动, 不是"无脑转交" (wake-handler 优秀示范)
+
+## [0.7.1] - 2026-08-24 (Phase 3 multi-platform support)
+
+### Added
+- **OS 自动检测** (src/os-detect.js) — Windows / Linux / macOS 跨平台
+  - process.platform 内置检测
+  - env var 覆盖 (CLAUDE_COLLAB / CLAUDE_BASH_PATH / CCP_*)
+  - 默认路径: Windows = D:/myopenclaw/scripts/, Linux/macOS = ~/myopenclaw/scripts/
+  - bash 路径: Windows = Git Bash, Linux/macOS = /bin/bash
+- **to_user=all broadcast 支持** (user 8/24 13:50 SGT 反馈) — collab-mcp source filter 改 `to_user=claude || to_user=all`
+- **vitest 单元测试扩展** (Phase 3 — 测试覆盖率 80%):
+  - tests/unit/sources-collab-mcp.test.js (8 tests) — to_user filter / acked filter / from_user filter / combined
+  - tests/unit/os-detect.test.js (15 tests) — detectPlatform / getBashPath / getCollabPath / isWindows/isMacOS/isLinux
+- **v0.7/CHANGELOG.md** 同步更新
+- **v0.7/.npmignore** 加 (排除 .github/ node_modules/ tests/ .claude/ 等)
+
+### Fixed
+- collab-mcp.js path 处理: 用 os-detect.js 替代 hardcode Windows path
+- isLinux 函数名 (之前 `process.platform_is_linux` 是 invalid JS syntax)
+- bash -c wrapper 跨平台 (Windows + Linux/macOS 都用同样模式)
+- 4 failed tests 修 (3 mock 改 mockResolvedValue, 1 Linux path 检测)
+
 ## [0.7.0] - 2026-08-24 (Phase 1 商用化 hardening)
 
 ### Added (Phase 1 全部完成)
