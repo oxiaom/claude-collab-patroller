@@ -22,10 +22,12 @@ class Watcher {
     this.dedupe = new Dedupe(5 * 60 * 1000) // 5-min window
     this.running = false
 
-    // Phase 3.2 fix: 启动时设 last_poll_ts = now, 避免 backlog flush
-    // (v0.7.0/v0.7.1 bug: 启动时 last_poll_ts=null, 第一次 poll 拉所有历史, 写 21+ wake marker 1s 内 burst)
+    // Phase 3.2 fix (real): 跟踪 max msg_id seen, 跳过历史积压
+    // v0.7.0/v0.7.1 bug: 启动时没有 maxSeenMsgId 概念, source.poll() 返回所有 unacked msgs,
+    // 第一次 poll 写 21+ wake marker 在 1s 内 burst (148 个实测 8/24 14:22 SGT)
+    // 修法: 跟踪每个 source 的 max msg_id seen, 启动时设 high water mark (避免重放历史)
     this.startupTime = Date.now()
-    this.lastPollTs = this.startupTime
+    this.maxSeenMsgIds = {}  // per-source: {sourceName: maxMsgId}
 
     // Metrics
     this.metrics = {
@@ -33,7 +35,7 @@ class Watcher {
       wakes_sent: 0,
       reminds_sent: 0,
       errors: 0,
-      last_poll_ts: this.startupTime,
+      last_poll_ts: null,
       last_wake_ts: null,
     }
 
@@ -75,9 +77,27 @@ class Watcher {
       throw new Error('no sources initialized')
     }
 
+    // Phase 3.2 fix (real): primer poll 设 high water mark, 不 wake
+    // 启动时 poll 一次, 只取 max msg_id 设到 maxSeenMsgIds, **不** 触发 wake
+    // 避免 daemon 启动时把历史 148 个未 ack msgs 当新消息 burst 写 wake marker
+    for (const source of this.sources) {
+      try {
+        const primerMsgs = await source.poll()
+        if (primerMsgs.length > 0) {
+          this.maxSeenMsgIds[source.name] = Math.max(...primerMsgs.map(m => m.id))
+          logger.info('primer-set', { source: source.name, maxMsgId: this.maxSeenMsgIds[source.name], skipped: primerMsgs.length })
+        } else {
+          this.maxSeenMsgIds[source.name] = 0
+        }
+      } catch (e) {
+        logger.warn('primer-failed', { source: source.name, error: e.message })
+        this.maxSeenMsgIds[source.name] = 0
+      }
+    }
+
     // Main loop
     this.running = true
-    logger.info('watcher-started', { sourceCount: this.sources.length })
+    logger.info('watcher-started', { sourceCount: this.sources.length, maxSeenMsgIds: this.maxSeenMsgIds })
 
     // Run loop in background (don't await — let daemon.start() return)
     this.loopPromise = this._loop()
@@ -104,7 +124,30 @@ class Watcher {
 
     for (const source of this.sources) {
       try {
-        const msgs = await source.poll()
+        let msgs = await source.poll()
+
+        // Phase 3.2 fix (real): 跳过历史积压 (id <= maxSeenMsgIds[source.name])
+        // primer poll 已设 maxSeenMsgIds 到当前最大 id, 这次只处理 > maxSeen
+        const maxSeen = this.maxSeenMsgIds[source.name] || 0
+        const beforeCount = msgs.length
+        msgs = msgs.filter(m => m.id > maxSeen)
+        // Update high water mark (per source)
+        if (msgs.length > 0) {
+          const newMax = Math.max(...msgs.map(m => m.id))
+          if (newMax > maxSeen) {
+            this.maxSeenMsgIds[source.name] = newMax
+          }
+        }
+
+        const skipped = beforeCount - msgs.length
+        if (skipped > 0) {
+          logger.info('backlog-skipped', {
+            source: source.name,
+            skipped,
+            maxSeenMsgId: this.maxSeenMsgIds[source.name],
+          })
+        }
+
         for (const msg of msgs) {
           if (this.dedupe.isSeen(msg)) continue
           this.dedupe.markSeen(msg)
