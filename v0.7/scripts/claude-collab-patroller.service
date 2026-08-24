@@ -1,0 +1,59 @@
+# claude-collab-patroller.service — systemd unit file
+#
+# 用户 8/24 01:25 SGT 拍板 B (Phase 1 only) + 8/25 00:30 user "全部 推进"
+#   Phase 1.2: Node.js daemon + PM2/systemd 守护 (本文件 + ecosystem.config.js)
+#   修 v0.7 daemon ~30s 死问题 (background process 在 Windows 没 PM2 保护)
+#
+# 用法 (Linux production):
+#   sudo cp claude-collab-patroller.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable claude-collab-patroller
+#   sudo systemctl start claude-collab-patroller
+#   sudo systemctl status claude-collab-patroller
+#   journalctl -u claude-collab-patroller -f
+
+[Unit]
+Description=claude-collab-patroller daemon (v0.7.x)
+Documentation=https://github.com/oxiaom/claude-collab-patroller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=claude
+Group=claude
+WorkingDirectory=/opt/claude-collab-patroller/v0.7
+ExecStart=/usr/bin/node /opt/claude-collab-patroller/v0.7/src/daemon.js
+Restart=always
+RestartSec=10
+StartLimitBurst=10
+StartLimitIntervalSec=60
+# Resource limits
+MemoryMax=300M
+CPUQuota=50%
+# Environment variables (override per deploy)
+Environment=NODE_ENV=production
+Environment=CCP_POLL_INTERVAL=10000
+Environment=CCP_WAKE_METHOD=file-marker
+Environment=CCP_HEALTH_PORT=7777
+Environment=CCP_HEALTH_HOST=127.0.0.1
+Environment=CCP_LOG_LEVEL=info
+Environment=CCP_LOG_FORMAT=json
+Environment=CCP_LOG_DEST=file
+Environment=CLAUDE_COLLAB=/opt/claude-collab-patroller/scripts/mcp-collab-claude.sh
+Environment=CLAUDE_API_KEY_FILE=/home/claude/.collab-mcp/claude-api-key
+# Watchdog (kill if not responsive)
+WatchdogSec=60
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log/claude-collab-patroller
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=claude-collab-patroller
+
+[Install]
+WantedBy=multi-user.target
