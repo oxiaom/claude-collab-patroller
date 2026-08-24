@@ -10,6 +10,7 @@ const { execFile } = require('child_process')
 const util = require('util')
 const execp = util.promisify(execFile)
 const Source = require('./base')
+const { isWindows, getBashPath, getCollabPath } = require('../os-detect')
 
 class CollabMCPSource extends Source {
   /**

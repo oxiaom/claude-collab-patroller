@@ -35,15 +35,22 @@ class Daemon {
   }
 
   async start() {
+    const fs = require('fs')
+    const DBG = 'C:/Users/SUISHUO-GK/AppData/Local/Temp/daemon-startup.log'
+    const dbg = (m) => { try { fs.appendFileSync(DBG, m + '\n') } catch(e) {} }
+    dbg('--- start ---')
+
     logger.info('startup', {
       version: require('../package.json').version,
       pid: process.pid,
       node: process.version,
       platform: process.platform,
     })
+    dbg('logger.info startup done')
 
     // Init Wake (multi-channel dispatcher)
     const wake = new Wake(config.wake)
+    dbg('wake created')
 
     // Init Watcher (multi-source poll loop)
     this.watcher = new Watcher({
@@ -52,6 +59,7 @@ class Daemon {
       wake,
       onError: (err, ctx) => logger.error('source-error', { error: err.message, ...ctx }),
     })
+    dbg('watcher created')
 
     // Init Watchdog (claude.exe crash detection, Phase 1.4)
     this.watchdog = new Watchdog({
@@ -63,6 +71,7 @@ class Daemon {
         // 当前: log + metric (Phase 1.4 scope)
       },
     })
+    dbg('watchdog created')
 
     // Init Health HTTP endpoint
     if (config.health.enabled) {
@@ -85,6 +94,7 @@ class Daemon {
         host: config.health.host,
       })
     }
+    dbg('health init done')
 
     // Start watcher
     try {

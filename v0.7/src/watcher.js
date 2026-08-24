@@ -37,19 +37,30 @@ class Watcher {
   }
 
   async start() {
+    const fs = require('fs')
+    const DBG = 'C:/Users/SUISHUO-GK/AppData/Local/Temp/watcher-start.log'
+    const dbg = (m) => { try { fs.appendFileSync(DBG, m + '\n') } catch(e) {} }
+    dbg('--- start ---')
+
     // Init each source
     for (const cfg of this.sourceConfigs) {
       try {
+        dbg(`init: type=${cfg.type} name=${cfg.name}`)
         const SourceClass = registry.get(cfg.type)
         if (!SourceClass) {
+          dbg(`unknown type: ${cfg.type}`)
           logger.error('source-unknown', { type: cfg.type })
           continue
         }
         const source = new SourceClass(cfg)
+        dbg('source instantiated, calling init()')
         await source.init()
+        dbg('source init() resolved')
         this.sources.push(source)
         logger.info('source-initialized', { name: source.name, type: cfg.type })
       } catch (e) {
+        dbg(`source-init-failed: ${cfg.type} - ${e.message}`)
+        dbg(`STACK: ${e.stack}`)
         logger.error('source-init-failed', { type: cfg.type, error: e.message })
         this.metrics.errors++
       }
