@@ -39,8 +39,9 @@ class CollabMCPSource extends Source {
   async init() {
     // Fails loud (telegrammer fails-loud #1): 脚本存在
     const fs = require('fs')
-    if (!fs.existsSync(this.scriptPath)) {
-      throw new Error(`mcp-collab-claude.sh not found at ${this.scriptPath}`)
+    const scriptPath = isWindows() ? this.scriptPath.replace(/\\/g, '/') : this.scriptPath
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`mcp-collab-claude.sh not found at ${scriptPath}`)
     }
     if (!fs.existsSync(this.bashPath)) {
       throw new Error(`bash not found at ${this.bashPath}`)
@@ -50,10 +51,10 @@ class CollabMCPSource extends Source {
     }
     // Fails loud (telegrammer fails-loud #2): API 可达
     try {
-      const cmd = `"${this.scriptPath.replace(/\\/g, '/')}" list-pending --type messages`
+      const cmd = `"${scriptPath}" list-pending --type messages`
       await execp(this.bashPath, ['-c', cmd], {
         timeout: this.pollTimeoutMs,
-        windowsHide: true,
+        windowsHide: isWindows(),
       })
     } catch (e) {
       throw new Error(`collab-mcp API not reachable at startup: ${e.message}`)
@@ -63,12 +64,13 @@ class CollabMCPSource extends Source {
   async poll() {
     let stdout
     try {
-      // 在 Windows 上, 必须通过 bash wrapper (脚本是 bash, 不是 native exe)
-      // 用 `bash -c "<script> <args>"` 模式, 避免 Node.js execFile 直接执行 .exe 的问题
-      const cmd = `"${this.scriptPath.replace(/\\/g, '/')}" list-pending --type messages`
+      // 用 bash -c wrapper (脚本是 bash, 不是 native exe)
+      // Phase 3: 跨平台 — Windows 跟 Linux/macOS 都用同样模式
+      const scriptPath = isWindows() ? this.scriptPath.replace(/\\/g, '/') : this.scriptPath
+      const cmd = `"${scriptPath}" list-pending --type messages`
       const result = await execp(this.bashPath, ['-c', cmd], {
         timeout: this.pollTimeoutMs,
-        windowsHide: true,
+        windowsHide: isWindows(),
       })
       stdout = result.stdout
     } catch (e) {
@@ -86,7 +88,13 @@ class CollabMCPSource extends Source {
 
     const msgs = data?.result?.messages || []
     return msgs
-      .filter(m => m.to_user === 'claude' && !m.acked && m.from_user !== 'claude')
+      .filter(m =>
+        // Accept both direct messages to claude + broadcast messages to all
+        // (to_user === 'all' = broadcast, claude IS part of 'all' so include)
+        (m.to_user === 'claude' || m.to_user === 'all')
+        && !m.acked
+        && m.from_user !== 'claude'
+      )
       .map(m => ({
         id: m.id,
         from: m.from_user,
@@ -99,10 +107,11 @@ class CollabMCPSource extends Source {
 
   async ack(msg) {
     try {
-      const cmd = `"${this.scriptPath.replace(/\\/g, '/')}" ack --id ${msg.id}`
+      const scriptPath = isWindows() ? this.scriptPath.replace(/\\/g, '/') : this.scriptPath
+      const cmd = `"${scriptPath}" ack --id ${msg.id}`
       await execp(this.bashPath, ['-c', cmd], {
         timeout: 10000,
-        windowsHide: true,
+        windowsHide: isWindows(),
       })
     } catch (e) {
       console.error(`[${this.name}] ack #${msg.id} error: ${e.message}`)

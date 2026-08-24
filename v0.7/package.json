@@ -1,6 +1,6 @@
 {
   "name": "claude-collab-patroller-daemon",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Phase 1.2 persistent Node.js daemon for claude-collab-patroller plugin. Multi-source patrol watcher with auto-restart, health endpoint, multi-channel wake. Phase 1 commercial-grade hardening (8/24 01:25 SGT user拍板).",
   "main": "src/daemon.js",
   "bin": {
