@@ -23,6 +23,7 @@ const Watchdog = require('./watchdog')
 const logger = require('./logger')
 const { setLogLevel } = logger
 const health = require('./health')
+const prometheus = require('./prometheus')
 const config = require('./config')
 
 class Daemon {
@@ -65,17 +66,21 @@ class Daemon {
 
     // Init Health HTTP endpoint
     if (config.health.enabled) {
+      const getStatus = () => ({
+        status: 'ok',
+        pid: process.pid,
+        uptime: Math.floor((Date.now() - this.startTime) / 1000),
+        sources: this.watcher.getSourcesStatus(),
+        metrics: {
+          ...this.watcher.getMetrics(),
+          watchdog: this.watchdog?.getMetrics() || {},
+        },
+      })
+
+      // Combined HTTP server: /health (JSON) + /metrics (Prometheus) + /ready
       this.healthServer = health.createServer({
-        getStatus: () => ({
-          status: 'ok',
-          pid: process.pid,
-          uptime: Math.floor((Date.now() - this.startTime) / 1000),
-          sources: this.watcher.getSourcesStatus(),
-          metrics: {
-            ...this.watcher.getMetrics(),
-            watchdog: this.watchdog?.getMetrics() || {},
-          },
-        }),
+        getStatus,
+        prometheusHandler: prometheus.createMetricsHandler({ getStatus }),
         port: config.health.port,
         host: config.health.host,
       })

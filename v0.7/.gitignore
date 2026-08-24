@@ -39,3 +39,15 @@ coverage/
 # Logs (daemon-specific)
 daemon.log
 pm2-*.log
+# GitHub push protection 触发文件 (8/24 实测)
+.claude/
+*.stackdump
+*inbox*.json
+*patrol*.json
+*patrol*.log
+*patrol*.py
+*patrol*.sh
+*patrol*.txt
+scripts/patrol-*.sh
+scripts/patrol-*.py
+inbox-*.json
